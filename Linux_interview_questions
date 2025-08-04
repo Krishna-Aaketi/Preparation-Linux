@@ -1,0 +1,97 @@
+
+# Advanced Linux System Programming: Signals – Questions and Answers
+
+## 1. What happens if a signal is sent to a process while it is in a system call like `read()`?
+
+If the system call is *interrupted* by a signal, the behavior depends on how the signal is configured:
+- If `SA_RESTART` is set, the system call is automatically restarted.
+- Otherwise, the system call returns with `-1` and `errno` is set to `EINTR`.
+
+## 2. Explain how you can make signal handling thread-safe in a multi-threaded program.
+
+Use `sigwait()` or `sigwaitinfo()` in a dedicated signal-handling thread. Block signals in all threads using `pthread_sigmask()`, and then let one thread handle signals synchronously. This avoids race conditions with asynchronous handlers.
+
+## 3. What are the major differences between real-time signals and standard POSIX signals?
+
+- Real-time signals range from `SIGRTMIN` to `SIGRTMAX`.
+- They are queued (not dropped), support priorities, and can carry additional data via `sigqueue()`.
+- Standard signals are not queued and may be dropped if sent multiple times before handling.
+
+## 4. What is the role of the `sigset_t` structure?
+
+`sigset_t` represents a set of signals to block or unblock. Used with `sigprocmask()`, `sigpending()`, and `sigaction()` to control signal delivery and masking.
+
+## 5. What is the difference between `kill()` and `raise()`?
+
+- `kill(pid, sig)` sends a signal to another process (or itself).
+- `raise(sig)` sends a signal to the current process (uses `kill(getpid(), sig)` internally).
+
+## 6. Can a signal handler call `printf()` safely?
+
+No. `printf()` is **not async-signal-safe**. Signal handlers should only call functions from the async-signal-safe list (e.g., `write()`, `signal()`, `_exit()`).
+
+## 7. Describe how `sigaction()` gives better control than `signal()`
+
+`sigaction()` allows precise control:
+- `SA_RESTART`: restart syscalls automatically.
+- `SA_NOCLDWAIT`: don't create zombie children.
+- `SA_SIGINFO`: provides `siginfo_t` and extended context.
+
+## 8. How can you block a specific signal temporarily?
+
+Use `sigprocmask()` to block the signal:
+```c
+sigset_t set, old;
+sigemptyset(&set);
+sigaddset(&set, SIGINT);
+sigprocmask(SIG_BLOCK, &set, &old);
+// critical section
+sigprocmask(SIG_SETMASK, &old, NULL);
+```
+
+## 9. How can you implement custom IPC using `sigqueue()`?
+
+Use `sigqueue()` to send real-time signals with a value:
+```c
+union sigval value;
+value.sival_int = 42;
+sigqueue(pid, SIGRTMIN, value);
+```
+
+In the handler, use `SA_SIGINFO` and read the `siginfo_t` structure.
+
+## 10. What are the drawbacks of using signals for IPC?
+
+- Limited data (only an int)
+- Difficult to manage in complex systems
+- Asynchronous, so race conditions are harder to handle
+- Non-deterministic ordering
+
+## 11. How does the Linux kernel deliver signals internally?
+
+- Each `task_struct` has `signal` and `sighand` structures.
+- Signals are queued in the kernel.
+- When the process is scheduled, the kernel checks for pending signals and delivers them appropriately.
+
+## 12. Can signals be used across containers or namespaces?
+
+Yes, but only if both processes are in the same **PID namespace** and the sender has the appropriate permissions (CAP_KILL).
+
+## 13. How do signals behave with `fork()`, `exec()`, and `clone()`?
+
+- `fork()`: child inherits signal handlers.
+- `exec()`: resets handlers to default unless flagged as `SA_RESETHAND`.
+- `clone()`: behavior depends on flags (`CLONE_SIGHAND`, etc).
+
+## 14. Are signals queued or dropped?
+
+- Standard signals: *not queued*, repeated signals may be dropped.
+- Real-time signals: *queued* and delivered in order.
+
+## 15. What is a race condition in signal delivery and how to avoid it?
+
+Occurs when a signal is delivered just before masking. Fix by:
+- Blocking the signal **before** checking or installing a handler.
+- Using `sigpending()` and `sigprocmask()` correctly.
+
+---
