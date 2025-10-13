@@ -1,0 +1,311 @@
+# ⚙️ System Calls & Kernel Interface
+### Subsystem 5 of 10
+
+---
+
+## 1️⃣ What is a System Call?
+A **system call (syscall)** is the **controlled entry point** from user space to kernel space.  
+It allows user programs to request kernel-level services such as **I/O, memory management, or process creation**.
+
+---
+
+## 2️⃣ Why Are System Calls Needed?
+- User programs run in **user mode** and cannot directly access hardware or protected memory.  
+- System calls provide a **safe API** to interact with the kernel — e.g., `read()`, `write()`, `fork()`, etc.
+
+---
+
+## 3️⃣ How Does a System Call Work Internally?
+1. Program calls a **C library wrapper** (e.g., `read()`).
+2. The wrapper loads the syscall number into a CPU register.
+3. A **software interrupt/trap** occurs  
+   (`svc #0` on ARM or `syscall` on x86-64), switching the CPU to kernel mode.
+4. Kernel executes the corresponding handler from the **syscall table**.
+5. Result or error (`errno`) is returned to user space.
+
+---
+
+## 4️⃣ Function Call vs System Call
+
+| Aspect | Function Call | System Call |
+|:--|:--|:--|
+| Mode | User → User | User → Kernel |
+| Overhead | Low | Higher (context switch) |
+| Access | User memory only | Can access devices & kernel data |
+| Example | `printf()` | `write()` |
+
+---
+
+## 5️⃣ What is Context Switching in System Calls?
+When a syscall is invoked, the **CPU switches context** from user mode to kernel mode.  
+Registers, stack pointers, and privilege levels change — this transition is called a **mode switch**.
+
+---
+
+## 6️⃣ What Are System Call Numbers?
+Each syscall has a unique **numeric ID** (e.g., `__NR_read = 0`).  
+The kernel uses this number to **index into the syscall table** and execute the correct handler.
+
+---
+
+## 7️⃣ What is the Syscall Table?
+A kernel array mapping syscall numbers to **function pointers** (`sys_read`, `sys_write`, etc.).  
+Defined in `syscall_table.S` (architecture-specific).
+
+---
+
+## 8️⃣ What Happens After a Syscall Returns?
+- CPU switches back to **user mode**.  
+- Kernel writes the **return value or error** into user registers.  
+- Execution resumes after the call.
+
+---
+
+## 9️⃣ How Does Linux Report Errors?
+System calls return `-1` and set the global variable **`errno`**, accessible via `perror()` or `strerror()`.
+
+---
+
+## 🔟 Common System Call Groups
+- **Process Control**: `fork()`, `exec()`, `wait()`, `exit()`  
+- **File I/O**: `open()`, `read()`, `write()`, `close()`, `lseek()`  
+- **Device I/O**: `ioctl()`  
+- **Memory**: `mmap()`, `brk()`, `munmap()`  
+- **IPC**: `pipe()`, `shmget()`, `msgsnd()`  
+- **Signals**: `kill()`, `sigaction()`  
+- **Network**: `socket()`, `bind()`, `send()`, `recv()`
+
+---
+
+## 11️⃣ Library Calls vs System Calls
+| Aspect | Library Call | System Call |
+|:--|:--|:--|
+| Executed Where | User space | Kernel space |
+| Implementation | In libc | In kernel |
+| Example | `printf()` → uses `write()` | `write()` itself |
+| Overhead | Low | High |
+
+---
+
+## 12️⃣ What is a Trap Instruction?
+A **CPU instruction** that triggers a **software interrupt**, transferring control to kernel mode — used for syscalls and exceptions.
+
+---
+
+## 13️⃣ What is a Re-entrant System Call?
+A syscall that can be safely **interrupted and re-entered** by another thread.  
+Example: `getpid()` is re-entrant, `read()` may block.
+
+---
+
+## 14️⃣ Role of C Library (glibc)
+`glibc` provides **user-friendly wrappers** around raw syscalls — managing arguments, `errno`, and version compatibility.
+
+---
+
+## 15️⃣ Can You Invoke a Syscall Without glibc?
+Yes — by using:
+```c
+syscall(__NR_write, fd, buf, len);
+````
+
+or inline assembly with syscall numbers and registers.
+
+---
+
+## 16️⃣ sys_enter vs sys_exit Events
+
+They represent **entry and exit points** of system calls — useful for tracing with tools like `strace` and `perf`.
+
+---
+
+## 17️⃣ Tool to Trace Syscalls
+
+`strace` — intercepts and prints all syscalls a process invokes.
+
+---
+
+## 18️⃣ strace vs ltrace
+
+| Tool     | Purpose                                             |
+| :------- | :-------------------------------------------------- |
+| `strace` | Traces system calls                                 |
+| `ltrace` | Traces library calls (e.g., `printf()`, `malloc()`) |
+
+---
+
+## 19️⃣ Blocking vs Non-blocking Syscalls
+
+| Type         | Description                                                       |
+| :----------- | :---------------------------------------------------------------- |
+| Blocking     | Process sleeps until operation completes (`read()` on empty pipe) |
+| Non-blocking | Returns immediately (`EAGAIN`)                                    |
+
+---
+
+## 20️⃣ Asynchronous Syscalls
+
+Execute asynchronously, completing later via **callbacks or signals** (e.g., `aio_read()`, `io_uring`).
+
+---
+
+## 21️⃣ What is io_uring?
+
+A **modern Linux I/O interface** (5.x+) for **asynchronous system calls**.
+Uses **ring buffers** shared between kernel and user space — much faster than traditional blocking syscalls.
+
+---
+
+## 22️⃣ System Call Interface (SCI)
+
+The **architecture-specific entry point** that handles transitions from user mode to kernel mode and dispatches syscalls to handlers.
+
+---
+
+## 23️⃣ Where Are Syscalls Implemented?
+
+In kernel subsystems:
+
+* `kernel/`, `fs/`, `mm/`, `ipc/`, `net/`
+* Architecture-specific code (e.g., `arch/x86/kernel/syscall_table.S`)
+
+---
+
+## 24️⃣ User Space vs Kernel Space
+
+| Aspect        | User Space           | Kernel Space         |
+| :------------ | :------------------- | :------------------- |
+| Privileges    | Limited              | Full hardware access |
+| Address Range | Low half of memory   | High half            |
+| Crash Effect  | Only affects process | May crash system     |
+
+---
+
+## 25️⃣ Privilege Levels (CPU Rings)
+
+Modern CPUs have **Rings 0–3**:
+
+* **Ring 3** = user mode
+* **Ring 0** = kernel mode
+  Syscalls move from Ring 3 → Ring 0.
+
+---
+
+## 26️⃣ copy_from_user() / copy_to_user()
+
+Kernel helpers to safely **transfer data between kernel and user spaces**, preventing invalid pointer access.
+
+---
+
+## 27️⃣ Why Can’t Kernel Use User Pointers Directly?
+
+Because user addresses might be **invalid or swapped out**.
+Kernel must validate and copy using the above helpers to avoid faults.
+
+---
+
+## 28️⃣ What is a Re-entrant Kernel?
+
+A kernel capable of handling **multiple concurrent syscalls** safely via locks and preemption control.
+
+---
+
+## 29️⃣ Monolithic vs Microkernel Syscalls
+
+| Model                  | Description                                                       |
+| :--------------------- | :---------------------------------------------------------------- |
+| **Monolithic (Linux)** | Syscalls invoke kernel functions directly within one large kernel |
+| **Microkernel**        | Syscalls send messages to user-space servers (slower, modular)    |
+
+---
+
+## 30️⃣ What is a Hypercall?
+
+A syscall-like interface for **guest VMs** to request services from a **hypervisor** (used in virtualization).
+
+---
+
+## 31️⃣ How Many Syscalls in Linux?
+
+Varies by architecture — modern x86-64 supports ~**450–500** syscalls.
+See `/usr/include/asm/unistd_64.h`.
+
+---
+
+## 32️⃣ How to List All Syscalls
+
+```bash
+ausyscall --dump
+grep "__NR_" /usr/include/asm/unistd_64.h
+```
+
+---
+
+## 33️⃣ Kernel Thread vs Syscall Execution
+
+| Type          | Runs In              | Description                    |
+| :------------ | :------------------- | :----------------------------- |
+| Kernel Thread | Kernel mode          | Never returns to user space    |
+| Syscall       | User → Kernel → User | Runs on behalf of user process |
+
+---
+
+## 34️⃣ SoftIRQ / Workqueue in Syscalls
+
+Syscalls often **queue asynchronous work** (e.g., disk I/O) to **SoftIRQs** or **workqueues**, allowing deferred execution.
+
+---
+
+## 35️⃣ Role of Scheduler in Syscalls
+
+If a syscall blocks (waiting for I/O), the **scheduler switches** to another runnable process until I/O completes.
+
+---
+
+## 36️⃣ What is a System Call Wrapper?
+
+A **user-space function** (e.g., glibc’s `open()`) that prepares syscall arguments and invokes the real kernel syscall.
+
+---
+
+## 37️⃣ Measuring Time Spent in Syscalls
+
+`strace -T` → shows syscall durations (entry ↔ exit timing).
+
+---
+
+## 38️⃣ Synchronous vs Asynchronous Syscalls
+
+| Type         | Behavior                                                |
+| :----------- | :------------------------------------------------------ |
+| Synchronous  | Returns only after completion                           |
+| Asynchronous | Returns immediately and signals later (`io_uring`, AIO) |
+
+---
+
+## 39️⃣ What is a Fast Path in Syscalls?
+
+Optimized code paths for **frequent syscalls** (like `read()`/`write()`) that skip locks or redundant checks for speed.
+
+---
+
+## 40️⃣ How Does Kernel Protect Against Malicious Inputs?
+
+* Argument validation
+* Access checks (UID/GID, capabilities)
+* Boundary checking (`copy_from_user`)
+* **Seccomp filters** to restrict allowed syscalls
+
+---
+
+## ✅ Summary
+
+* **System calls** are the gateway between user and kernel space.
+* Controlled transition via **trap/interrupts** (syscall instruction).
+* Managed via **syscall table** and **glibc wrappers**.
+* Tools: `strace`, `perf`, `io_uring`.
+* Security ensured by **validation**, **privilege levels**, and **Seccomp filters**.
+
+---
+
+```
