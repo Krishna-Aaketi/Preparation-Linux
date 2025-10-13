@@ -301,6 +301,3 @@ bg %2
 * Tools: `ps`, `top`, `kill`, `/proc/[pid]/`
 
 ```
-
-Would you like me to generate this as a downloadable **`process_management.md`** file for your Linux notes repository?
-```
