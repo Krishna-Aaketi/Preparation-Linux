@@ -120,6 +120,27 @@ A **CPU instruction** that triggers a **software interrupt**, transferring contr
 A syscall that can be safely **interrupted and re-entered** by another thread.  
 Example: `getpid()` is re-entrant, `read()` may block.
 
+### 🧩 What is a Re-entrant System Call?
+
+A **re-entrant system call** means:
+> The system call can be **safely interrupted** (for example by another thread or a signal)
+> and then **called again** (“re-entered”) before the first call has finished —  
+> without corrupting any shared data or causing unexpected behavior.
+
+---
+
+### 🧠 Simple Explanation
+
+- Think of a **re-entrant syscall** as **thread-safe** at the kernel level.
+- It **does not rely on any global or static kernel data** that can be modified by another thread during its execution.
+- So if two threads call it *at the same time*, both will work correctly.
+
+---
+
+### ✅ Example of Re-entrant Syscall
+
+```c
+pid_t getpid(void);
 ---
 
 ## 14️⃣ Role of C Library (glibc)
