@@ -266,7 +266,7 @@ Why? Simplicity and speed:
 
 ---
 
-### 🧩 `copy_from_user()` / `copy_to_user()`
+### 26 `copy_from_user()` / `copy_to_user()`
 
 These are **kernel helper functions** used to **safely copy data between user space and kernel space**.
 
