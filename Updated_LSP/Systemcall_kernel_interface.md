@@ -23,6 +23,30 @@ It allows user programs to request kernel-level services such as **I/O, memory m
 4. Kernel executes the corresponding handler from the **syscall table**.
 5. Result or error (`errno`) is returned to user space.
 
+### 🧭 How a System Call Works (Step-by-Step)
+
+ 1️ **User program** calls `read()`.  
+   - Example: `read(fd, buf, count);`
+
+ 2️ **C library wrapper** (inside `glibc`) sets up the syscall number and arguments.  
+   - It prepares CPU registers with the syscall number and parameters.
+
+ 3️ Executes the **syscall instruction** (`syscall` on x86-64 or `svc #0` on ARM).  
+   - This triggers a software interrupt (trap) to the kernel.
+
+ 4 **CPU switches** from **User Mode → Kernel Mode**.  
+   - Privileges change so the kernel can access hardware and memory safely.
+
+ 5️ **Kernel** looks up the correct handler in its **system call table**.  
+   - Example: `sys_read()` inside the Linux kernel handles the read operation.
+
+ 6️ The **kernel executes** the handler and returns a result (or negative error code).  
+   - Example: returns number of bytes read, or `-EFAULT`, `-EBADF`, etc.
+
+ 7️ The **wrapper converts** the kernel’s return value into a proper C return value.  
+   - Negative values are converted to `-1` and `errno` is set.  
+   - Your program then receives the result.
+
 ---
 
 ## 4️⃣ Function Call vs System Call
