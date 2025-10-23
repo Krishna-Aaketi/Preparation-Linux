@@ -266,10 +266,52 @@ Why? Simplicity and speed:
 
 ---
 
-## 26️⃣ copy_from_user() / copy_to_user()
+### 🧩 `copy_from_user()` / `copy_to_user()`
 
-Kernel helpers to safely **transfer data between kernel and user spaces**, preventing invalid pointer access.
+These are **kernel helper functions** used to **safely copy data between user space and kernel space**.
 
+---
+
+### 🧠 Why We Need Them
+
+- **User space** and **kernel space** have separate memory regions for protection.  
+- A normal pointer from user space **cannot be trusted** in kernel mode.  
+  - The user could pass an invalid address (e.g., `NULL` or an unmapped page).  
+  - If the kernel directly dereferenced it → **kernel crash or security bug**.
+
+Hence, the kernel uses **special safe access helpers** to check and copy data properly.
+
+---
+
+### ⚙️ Functions
+
+| Function | Direction | Purpose |
+|-----------|------------|----------|
+| `copy_from_user(void *to, const void __user *from, unsigned long n)` | User → Kernel | Copies `n` bytes from user-space pointer `from` into kernel buffer `to`. |
+| `copy_to_user(void __user *to, const void *from, unsigned long n)` | Kernel → User | Copies `n` bytes from kernel buffer `from` into user-space pointer `to`. |
+
+---
+
+### ✅ Example
+
+```c
+ssize_t my_syscall(void __user *user_buf, size_t len) {
+    char kbuf[128];
+
+    // Safely copy from user-space buffer
+    if (copy_from_user(kbuf, user_buf, len))
+        return -EFAULT;   // failed, invalid user address
+
+    // Process data in kernel space...
+    process_data(kbuf);
+
+    // Copy result back to user
+    if (copy_to_user(user_buf, kbuf, len))
+        return -EFAULT;
+
+    return len;  // success
+}
+```
 ---
 
 ## 27️⃣ Why Can’t Kernel Use User Pointers Directly?
