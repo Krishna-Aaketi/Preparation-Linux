@@ -122,42 +122,27 @@ Example: `getpid()` is re-entrant, `read()` may block.
 
 ### 🧩 What is a Re-entrant System Call?
 
-A **re-entrant system call** means:
-> The system call can be **safely interrupted** (for example by another thread or a signal)
-> and then **called again** (“re-entered”) before the first call has finished —  
-> without corrupting any shared data or causing unexpected behavior.
+A **re-entrant system call** is a system call that can be **safely interrupted** while it is executing,  
+and then **called again (“re-entered”)** by another thread (or signal handler) without causing data corruption or unexpected behavior.
+
+In simple words — it means the system call is **thread-safe** and doesn’t rely on any shared or static data inside the kernel.
 
 ---
 
-### 🧠 Simple Explanation
+### 🧠 Explanation
 
-- Think of a **re-entrant syscall** as **thread-safe** at the kernel level.
-- It **does not rely on any global or static kernel data** that can be modified by another thread during its execution.
-- So if two threads call it *at the same time*, both will work correctly.
+- Re-entrant system calls **don’t modify global kernel data**.
+- They **don’t block** waiting for I/O or other resources.
+- Two threads (or signals) can execute the same syscall simultaneously, and each will work correctly.
 
 ---
 
-### ✅ Example of Re-entrant Syscall
+### ✅ Example (Re-entrant)
 
 ```c
 pid_t getpid(void);
+```
 ---
-
-## 14️⃣ Role of C Library (glibc)
-`glibc` provides **user-friendly wrappers** around raw syscalls — managing arguments, `errno`, and version compatibility.
-
----
-
-## 15️⃣ Can You Invoke a Syscall Without glibc?
-Yes — by using:
-```c
-syscall(__NR_write, fd, buf, len);
-````
-
-or inline assembly with syscall numbers and registers.
-
----
-
 ## 16️⃣ sys_enter vs sys_exit Events
 
 They represent **entry and exit points** of system calls — useful for tracing with tools like `strace` and `perf`.
