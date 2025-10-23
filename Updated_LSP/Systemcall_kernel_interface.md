@@ -211,13 +211,58 @@ In kernel subsystems:
 
 ---
 
-## 25️⃣ Privilege Levels (CPU Rings)
+### 25️⃣ CPU Privilege Levels (Rings)
 
-Modern CPUs have **Rings 0–3**:
+Modern CPUs (like x86) define **four privilege levels**, called **Rings**:
 
-* **Ring 3** = user mode
-* **Ring 0** = kernel mode
-  Syscalls move from Ring 3 → Ring 0.
+| Ring | Privilege Level | Typical Use | Description |
+|------|------------------|--------------|--------------|
+| **Ring 0** | Highest (most privileged) | **Kernel mode** | Direct access to hardware, memory, CPU instructions. OS kernel, drivers. |
+| **Ring 1** | Medium-high | (Unused by most OSes) | Intended for privileged kernel services or device drivers. |
+| **Ring 2** | Medium-low | (Unused by most OSes) | Intended for less-privileged drivers or extensions. |
+| **Ring 3** | Lowest | **User mode** | User programs and applications. Cannot directly access hardware or memory management. |
+
+---
+
+### 🧭 How it Works
+
+- **User programs** run in **Ring 3** (least privilege).  
+- When they need OS services (like file I/O), they make a **system call** → CPU switches to **Ring 0** (kernel mode).  
+- The kernel runs the requested service (e.g., `sys_read()`) and then returns to **Ring 3**.
+
+So a syscall moves the CPU **from Ring 3 → Ring 0 → back to Ring 3**.
+
+---
+
+### ⚙️ What about Ring 1 and Ring 2?
+
+- Historically designed for **intermediate privilege layers** (e.g., device drivers or kernel modules).  
+- **Modern operating systems (Linux, Windows, macOS)** *don’t use* Rings 1–2 —  
+  they only use **Ring 0 (kernel)** and **Ring 3 (user)**.
+
+Why? Simplicity and speed:
+- Switching between more rings would complicate context switching.
+- Most CPUs now provide **other isolation methods** (e.g., **Virtual Memory**, **IOMMU**, **Supervisor/User bits**, **Hypervisor modes**).
+
+---
+
+### 💡 Modern Usage of Other Privilege Levels
+
+| Layer | CPU Mode / Ring | Used For |
+|--------|------------------|----------|
+| **User Apps** | Ring 3 | Normal programs |
+| **OS Kernel** | Ring 0 | Core operating system |
+| **Hypervisor (VMs)** | **“Ring –1”** | Virtual machine monitor (Intel VT-x, AMD-V) |
+| **System Management Mode (SMM)** | **“Ring –2”** | Firmware-level operations (BIOS/UEFI) |
+
+---
+
+### 🧠 Summary
+
+- **Rings 1–2** exist in theory but are **not used** in most modern OSes.  
+- CPUs *still* reserve them, but **hardware virtualization and protection bits** replaced their purpose.  
+- The critical boundary is between **Ring 3 (user)** and **Ring 0 (kernel)**.
+
 
 ---
 
