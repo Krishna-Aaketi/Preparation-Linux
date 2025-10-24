@@ -29,6 +29,35 @@ It contains:
 - **Zombie (Z)** – finished but not yet reaped  
 - **Dead (X)** – completely terminated  
 
+#### 🧠 Classic OS Theory (Textbook View)
+
+In theory, an operating system describes **five main process states**:
+
+| State | Meaning |
+|--------|----------|
+| **New** | Process being created |
+| **Ready** | Process waiting to be scheduled on CPU |
+| **Running** | Currently executing on CPU |
+| **Waiting / Blocked** | Waiting for I/O or an event |
+| **Terminated** | Finished execution |
+
+But Linux doesn’t show *exactly* these labels — instead, it merges or renames them.
+
+---
+
+### 🐧 Linux’s Actual Process States
+
+| Code | Name | Description |
+|------|------|--------------|
+| **R** | Running | Either *currently running* or *ready to run* (in the run queue). |
+| **S** | Sleeping | Interruptible sleep — waiting for an event (like I/O). |
+| **D** | Disk Sleep | Uninterruptible sleep (can’t be woken by signals, e.g., waiting for disk I/O). |
+| **T** | Stopped | Process paused by a signal (`SIGSTOP` or debugging). |
+| **Z** | Zombie | Process finished but parent hasn’t called `wait()` yet. |
+| **X** | Dead | Completely terminated (rarely visible). |
+
+---
+
 ---
 
 ## 4️⃣ What is the difference between fork() and exec()?
