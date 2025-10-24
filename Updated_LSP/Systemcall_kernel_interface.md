@@ -365,6 +365,18 @@ grep "__NR_" /usr/include/asm/unistd_64.h
 | Kernel Thread | Kernel mode          | Never returns to user space    |
 | Syscall       | User → Kernel → User | Runs on behalf of user process |
 
+### 🧭 Detailed Comparison
+
+| Feature | **System Call** | **Kernel Thread** |
+|----------|------------------|------------------|
+| **Who initiates it?** | User-space process | Kernel itself |
+| **Execution mode** | User → Kernel → back to User | Always Kernel mode |
+| **Context** | Executes in the context of calling process | Own independent thread context |
+| **Returns to user?** | ✅ Yes | ❌ No |
+| **Typical use** | File I/O, networking, memory allocation | Background kernel tasks (I/O flushing, scheduling) |
+| **Created by** | User process invoking syscall instruction | Kernel using `kthread_create()` |
+| **Examples** | `read()`, `write()`, `open()` | `kworker`, `kswapd`, `ksoftirqd` |
+
 ---
 
 ## 34️⃣ SoftIRQ / Workqueue in Syscalls
